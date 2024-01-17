@@ -1,0 +1,15 @@
+if TARGET_BLADE3_RK3588
+
+config SYS_BOARD
+	default "blade3-rk3588"
+
+config SYS_VENDOR
+	default "mixtile"
+
+config SYS_CONFIG_NAME
+	default "blade3-rk3588"
+
+config BOARD_SPECIFIC_OPTIONS # dummy
+	def_bool y
+
+endif

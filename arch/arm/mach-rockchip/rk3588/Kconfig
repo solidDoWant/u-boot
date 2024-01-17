@@ -107,7 +107,7 @@ config TARGET_ROCK5B_RK3588
 	  Radxa ROCK5B is a Rockchip RK3588 based SBC (Single Board Computer)
 	  by Radxa.
 
-	  There are tree variants depending on the DRAM size : 4G, 8G and 16G.
+	  There are three variants depending on the DRAM size : 4G, 8G and 16G.
 
 	  Specification:
 
@@ -132,6 +132,33 @@ config TARGET_QUARTZPRO64_RK3588
 	  Pine64 QuartzPro64 is a Rockchip RK3588 based SBC (Single Board
 	  Computer) by Pine64.
 
+config TARGET_BLADE3_RK3588
+	bool "Mixtile Blade 3 RK3588 board"
+	select BOARD_LATE_INIT
+	help
+	  Blade 3 is a Rockchip RK3588 based SBC by Mixtile.
+
+	  There are three variants with different RAM and eMMC configurations:
+	  One with 4GB/32GB, one with 16GB/128GB, and one with 32GB/256GB.
+
+	  Specifications:
+
+	  Rockchip RK3588 SoC
+	  4x ARM Cortex-A76, 4x ARM Cortex-A55
+	  4/16/32GB memory LPDDR4
+	  Mali G610MC4 GPU
+	  1x MIPI CSI 4 multiple lanes connector
+	  32/128/256GB eMMC 5.1
+	  2x USB 3.0 Type-C
+	  1x HDMI 2.1 output, 1x HDMI 2.0 input
+	  2x 2.5 Gbps Ethernet ports via RTLB8152B Ethernet controller
+	  30-pin GPIO header including I2C, USB 2.0, UART, SPI, and I2S
+	  USB PD over USB Type-C
+	  4-lane PCIe 3.0, SATA 3.0, debug UART, 12V power input via U.2 port
+	  Size: 100mm x 72mm (Pico-ITX form factor)
+	  1x Mini-PCIe
+	  1x MicroSD SDR104 slot
+
 config ROCKCHIP_BOOT_MODE_REG
 	default 0xfd588080
 
@@ -150,5 +177,6 @@ source board/pine64/quartzpro64-rk3588/Kconfig
 source board/rockchip/evb_rk3588/Kconfig
 source board/radxa/rock5a-rk3588s/Kconfig
 source board/radxa/rock5b-rk3588/Kconfig
+source board/mixtile/blade3-rk3588/Kconfig
 
 endif

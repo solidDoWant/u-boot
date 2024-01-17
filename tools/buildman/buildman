@@ -1,1 +1,2 @@
-main.py
+#!/bin/bash
+python ./tools/buildman/main.py $@
