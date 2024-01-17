@@ -8,6 +8,10 @@ build-spl-loader:
     LET OUTPUT_FILE=$(sed -n 's/PATH=\(.*\)/\1/p' ./RKBOOT/RK3588MINIALL.ini)
     SAVE ARTIFACT $OUTPUT_FILE AS LOCAL ./rk3588_spl_loader.bin
 
+build-boot-config:
+    FROM ubuntu:22.04
+    WORKDIR /build
+
 build-u-boot:
     ARG SOURCE_DATE_EPOCH
 
@@ -43,6 +47,8 @@ build-u-boot:
     END
     RUN make -j$NUM_MAKE_PROC $BUILD_ARGS
 
+    RUN --interactive bash
+
     SAVE ARTIFACT ./idbloader.img AS LOCAL ./idbloader.img
     SAVE ARTIFACT ./u-boot.itb AS LOCAL ./u-boot.itb
 
@@ -51,7 +57,7 @@ create-image:
     WORKDIR /build
 
     ENV DEBIAN_FRONTEND=noninteractive
-    RUN apt update && apt install --no-install-recommends -y parted udev
+    RUN apt update && apt install --no-install-recommends -y parted fdisk udev
 
     ARG SECTOR_SIZE=512
     LET MIN_SECT_COUNT=$(echo $(( 1 + 63 + 7104 + 512 + 384 + 128 + 64 + 8192 + 8192 + 8192 + 229376 + 33 )))   # Calculated from https://opensource.rock-chips.com/wiki_Partitions
@@ -60,35 +66,37 @@ create-image:
     # This could theoretically be written to not use a loopback device, but copying files
     # would be a huge pain
     LET IMAGE_FILE_PATH="./firmware.img"
-    RUN --privileged truncate --size=$IMAGE_SIZE_BYTES $IMAGE_FILE_PATH && \    # Create an empty image file
-        # Existing loop devices don't work well in a container in Earthly for some reason, so create a new one
-        LOOPBACK_DEV_ID=$(( $(cat /sys/module/loop/parameters/max_loop) + 50)) && \
-        LOOPBACK_DEV="/dev/loop$LOOPBACK_DEV_ID" && \
-        mknod "$LOOPBACK_DEV" b 7 "$LOOPBACK_DEV_ID" && \
-        losetup --sizelimit=$IMAGE_SIZE_BYTES --sector-size=$SECTOR_SIZE "$LOOPBACK_DEV" "$IMAGE_FILE_PATH" && \ # Mount the file
+    RUN truncate --size=$IMAGE_SIZE_BYTES $IMAGE_FILE_PATH  # Create the 0'd out image file
+    RUN parted --script "$IMAGE_FILE_PATH" \
+            mklabel gpt \                       # Create the GUID partition table
+            unit s \                            # Set the unit for the remainder of the command to "sectors"
+            mkpart primary 64 2111 \            # Create the SPL/TPL partition that idbloader.img will be written to
+            mkpart primary 16384 20479 \        # Create the U-Boot partition that u-boot.itb will be written to
+            mkpart primary fat16 32768 163839 \ # Create the boot configuration partition that the device tree and boot script will be written to
+            name 1 "idbloader" \                # Name the partitions
+            name 2 "u-boot" \
+            name 3 "boot-config" \
+            set 3 boot on                       # Set the boot config partition GUID to "boot"
+    RUN sfdisk --part-type "$IMAGE_FILE_PATH" 3 "Linux extended boot"  # Label the boot-config partition as a /boot partition
+    RUN sfdisk --dump "$IMAGE_FILE_PATH"                               # Print the partition table
+    RUN --privileged LOOPBACK_DEV=$(losetup --sizelimit=$IMAGE_SIZE_BYTES --sector-size=$SECTOR_SIZE --partscan --show -f "$IMAGE_FILE_PATH") && \ # Mount the file
         ( \ # If successfully mounted
             ( \
-                dd if=/dev/zero of=$LOOPBACK_DEV count=4096 bs=$SECTOR_SIZE && \ # Blank out the first 4096 sectors. For some reason parted thinks that there is a GPT table here already although it's all 0s
-                # If this fails, see https://unix.stackexchange.com/a/87189. If on WSL2, update the command line using these instructions: https://learn.microsoft.com/en-us/windows/wsl/wsl-config#wslconfig
-                parted --script "$LOOPBACK_DEV" \
-                    mklabel gpt \                   # Create the GUID partition table
-                    unit s \                        # Set the unit for the remainder of the command to "sectors"
-                    mkpart primary 64 2111 \        # Create the SPL/TPL partition that idbloader.img will be written to
-                    mkpart primary 16384 20479 \    # Create the U-Boot partition that u-boot.itb will be written to
-                    mkpart primary 32768 163839 \   # Create the boot configuration partition that the device tree and boot script will be written to
-                    print \                         # Print the created table
+                ls -l /dev \
+                ls -l "$LOOPBACK_DEV"p1 \
             ); \
             ( \
+                EXITCODE=$? && \
                 # Always cleanup loopback dev
                 losetup -d "$LOOPBACK_DEV" ; \
-                rm "$LOOPBACK_DEV" \
+                exit $EXITCODE \
             ) \
         )
+    SAVE ARTIFACT $IMAGE_FILE_PATH AS LOCAL ./firmware.img
 
 test-loopback-dev:
     FROM --allow-privileged ubuntu:22.04    # Privliged required to setup loopback device
     WORKDIR /build
     RUN --privileged truncate --size=64M firmware.img && \
-        mknod /dev/loop123 b 7 0 && \
-        losetup --sizelimit=64MiB --sector-size=512 /dev/loop123 firmware.img && \
+        losetup --sizelimit=64MiB --sector-size=512 --show -f firmware.img && \
         echo "Sucessfully attached firmware.img to $LOOPBACK_DEV"
