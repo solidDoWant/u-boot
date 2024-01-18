@@ -87,7 +87,7 @@ build-boot-config:
     SAVE ARTIFACT $IMAGE_FILE_PATH AS LOCAL ./boot-config.img
 
 build-firmware-image:
-    FROM --allow-privileged ubuntu:22.04    # Privliged required to setup loopback device
+    FROM ubuntu:22.04
     WORKDIR /build
 
     ENV DEBIAN_FRONTEND=noninteractive
@@ -125,11 +125,27 @@ build-firmware-image:
     COPY --build-arg=PARTITION_SIZE_BYTES=$BOOT_CONFIG_PARTITION_SIZE_BYTES +build-boot-config/boot-config.img ./boot-config.img
 
     # Write the partition image file
-    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE if=./idbloader.img seek=$IDBLOADER_FIRST_SECTOR
-    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE if=./u-boot.itb seek=$U_BOOT_FIRST_SECTOR
-    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE if=./boot-config.img seek=$BOOT_CONFIG_FIRST_SECTOR
+    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE conv=notrunc if=./idbloader.img seek=$IDBLOADER_FIRST_SECTOR
+    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE conv=notrunc if=./u-boot.itb seek=$U_BOOT_FIRST_SECTOR
+    RUN dd of=$IMAGE_FILE_PATH bs=$SECTOR_SIZE conv=notrunc if=./boot-config.img seek=$BOOT_CONFIG_FIRST_SECTOR
 
     # Force any async writes to complete
     RUN sync --file-system $IMAGE_FILE_PATH
 
     SAVE ARTIFACT $IMAGE_FILE_PATH AS LOCAL ./firmware.img
+
+package-firmware-image:
+    FROM ubuntu:22.04
+    WORKDIR /build
+
+    LET TARBALL_PATH=./firmware.tar.gz
+    COPY +build-firmware-image/* ./
+    RUN tar -czvf $TARBALL_PATH *
+    RUN sha256sum $TARBALL_PATH > $TARBALL_PATH.sha256
+
+    SAVE ARTIFACT $TARBALL_PATH AS LOCAL ./firmware.tar.gz
+    SAVE ARTIFACT $TARBALL_PATH.sha256 AS LOCAL ./firmware.tar.gz.sha256
+
+clean:
+    LOCALLY
+    RUN rm -f *.tar.gz* *.img *.itb *.dts
