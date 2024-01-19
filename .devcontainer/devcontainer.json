@@ -19,5 +19,10 @@
 			]
 		}
 	},
+	"runArgs": [
+		// Required for flashing
+		"-v",
+		"/dev/bus/usb:/dev/bus/usb"
+	],
 	"postCreateCommand": "sudo apt update && DPKG_FRONTEND=noninteractive sudo apt install --no-install-recommends -y file fdisk parted libncurses-dev bison flex"
 }

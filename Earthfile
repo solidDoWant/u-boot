@@ -11,6 +11,10 @@ APT_INSTALL:
     ARG --required PACKAGES
     RUN apt update && DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y $PACKAGES
 
+git-container:
+    FROM ubuntu:22.04
+    DO +APT_INSTALL --PACKAGES="ca-certificates git"
+
 menuconfig:
     FROM ubuntu:22.04
     WORKDIR /src
@@ -21,14 +25,6 @@ menuconfig:
     DO +ENSURE_CONFIG_EXISTS
     RUN --interactive make menuconfig
     SAVE ARTIFACT ./.config AS LOCAL ./.config
-
-build-spl-loader:
-    FROM alpine/git:2.43.0
-    WORKDIR /src
-    RUN git clone --depth 1 --single-branch --branch master https://github.com/rockchip-linux/rkbin.git .
-    RUN ./tools/boot_merger ./RKBOOT/RK3588MINIALL.ini
-    LET OUTPUT_FILE=$(sed -n 's/PATH=\(.*\)/\1/p' ./RKBOOT/RK3588MINIALL.ini)
-    SAVE ARTIFACT $OUTPUT_FILE AS LOCAL ./rk3588_spl_loader.bin
 
 build-u-boot:
     ARG SOURCE_DATE_EPOCH
@@ -146,6 +142,48 @@ package-firmware-image:
     SAVE ARTIFACT $TARBALL_PATH AS LOCAL ./firmware.tar.gz
     SAVE ARTIFACT $TARBALL_PATH.sha256 AS LOCAL ./firmware.tar.gz.sha256
 
+build-spl-loader:
+    FROM +git-container
+    WORKDIR /src
+    RUN git clone --depth 1 --single-branch --branch master https://github.com/rockchip-linux/rkbin.git .
+    RUN ./tools/boot_merger ./RKBOOT/RK3588MINIALL.ini
+    LET OUTPUT_FILE=$(sed -n 's/PATH=\(.*\)/\1/p' ./RKBOOT/RK3588MINIALL.ini)
+    SAVE ARTIFACT $OUTPUT_FILE rk3588_spl_loader.bin AS LOCAL ./rk3588_spl_loader.bin
+
+build-rkdeveloptool:
+    FROM +git-container
+    WORKDIR /src
+    RUN git clone --depth 1 --single-branch --branch master https://github.com/radxa/rkdeveloptool.git .
+    DO +APT_INSTALL --PACKAGES="autotools-dev make g++ libudev-dev libusb-1.0-0-dev dh-autoreconf pkg-config"
+    RUN aclocal
+    RUN autoreconf -i
+    RUN autoheader
+    RUN automake --add-missing
+    RUN ./configure
+    RUN make -j$(nproc)
+    SAVE ARTIFACT ./rkdeveloptool AS LOCAL ./rkdeveloptool
+
+# rkdeveloptool-image:
+#     FROM +build-rkdeveloptool
+#     RUN cp /src/rkdeveloptool /usr/bin/
+#     RUN rm -r /src
+
+# Note: This requires libudev1 and libusb-1.0-0 installed on the local host
+flash-device:
+    # FROM +rkdeveloptool-image
+    LOCALLY
+
+    # Build the required images
+    COPY +build-rkdeveloptool/rkdeveloptool .
+    COPY +build-spl-loader/rk3588_spl_loader.bin .
+    COPY +build-firmware-image/firmware.img .
+
+    # Flash
+    RUN \
+        ./rkdeveloptool db rk3588_spl_loader.bin && \   # Upload the bootloader
+        ./rkdeveloptool wl 0x0 firmware.img && \        # Upload the image
+        ./rkdeveloptool pl                              # Log the partitions
+
 clean:
     LOCALLY
-    RUN rm -f *.tar.gz* *.img *.itb *.dts
+    RUN rm -f *.tar.gz* *.img *.itb *.dts *.bin

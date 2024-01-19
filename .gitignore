@@ -118,3 +118,7 @@ __pycache__
 
 # Clang's compilation database file
 /compile_commands.json
+
+# RK3588 stuff
+rkdeveloptool
+/log/
