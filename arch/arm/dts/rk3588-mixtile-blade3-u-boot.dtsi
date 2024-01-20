@@ -173,7 +173,6 @@
 	};
 
 	secure-otp@fe3a0000 {
-		u-boot,dm-spl;
 		compatible = "rockchip,rk3588-secure-otp";
 		reg = <0x0 0xfe3a0000 0x0 0x4000>;
 	};
@@ -264,7 +263,6 @@
 	};
 
 	pcie {
-		u-boot,dm-spl;
 		vcc3v3_pcie30_en: vcc3v3-pcie30-en {
 			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
