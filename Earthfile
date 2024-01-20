@@ -44,10 +44,12 @@ build-u-boot:
         python3-sphinx-rtd-theme python3-subunit python3-testtools \
         python3-virtualenv swig uuid-dev
     RUN wget https://github.com/rockchip-linux/rkbin/raw/master/bin/rk35/rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin && \
-        wget https://github.com/rockchip-linux/rkbin/raw/master/bin/rk35/rk3588_bl31_v1.40.elf
+        wget https://github.com/rockchip-linux/rkbin/raw/master/bin/rk35/rk3588_bl31_v1.40.elf && \
+        wget https://github.com/rockchip-linux/rkbin/raw/master/bin/rk35/rk3588_bl32_v1.13.bin
     ENV CROSS_COMPILE=aarch64-linux-gnu-
     ENV ROCKCHIP_TPL=./rk3588_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin
     ENV BL31=./rk3588_bl31_v1.40.elf
+    ENV TEE=./rk3588_bl32_v1.13.bin
 
     LET NUM_MAKE_PROC=$(nproc)
     COPY . .
@@ -180,10 +182,12 @@ flash-device:
 
     # Flash
     RUN \
-        ./rkdeveloptool db rk3588_spl_loader.bin && \   # Upload the bootloader
+        ./rkdeveloptool db rk3588_spl_loader.bin && \   # Upload the miniloader
+        sleep 5 && \                                    # Sleepd while the bus re-enumerates
         ./rkdeveloptool wl 0x0 firmware.img && \        # Upload the image
-        ./rkdeveloptool pl                              # Log the partitions
+        ./rkdeveloptool ppt && \                        # Log the partitions
+        ./rkdeveloptool rd                              # Reset the device
 
 clean:
     LOCALLY
-    RUN rm -f *.tar.gz* *.img *.itb *.dts *.bin
+    RUN rm -f *.tar.gz* *.img *.itb *.dts *.dtb *.bin rkdeveloptool
