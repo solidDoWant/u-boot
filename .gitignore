@@ -35,6 +35,7 @@
 *.tab.[ch]
 !.vscode
 !.devcontainer
+!.earthlyignore
 
 # Build tree
 /build*
