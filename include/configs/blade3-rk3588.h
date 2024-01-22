@@ -3,8 +3,8 @@
  * Copyright (c) 2023 Rockchip Electronics Co., Ltd.
  */
 
-#ifndef __EVB_RK3588_H
-#define __EVB_RK3588_H
+#ifndef __BLADE3_RK3588_H
+#define __BLADE3_RK3588_H
 
 #include <configs/rk3588_common.h>
 
