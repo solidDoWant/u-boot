@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
- * Copyright (c) 2022 Mixtile Limited
+ * Copyright (c) 2024 Fred Heinecke
  *
  */
 
@@ -10,13 +10,10 @@
 #include "rk3588.dtsi"
 
 / {
-	model = "Mixtile Blade 3 LINUX DTS";
+	model = "Mixtile Blade 3";
 	compatible = "mixtile,blade3", "rockchip,rk3588";
 
-	// TODO
 	aliases {
-		mmc0 = &sdhci;
-		mmc1 = &sdmmc;
 		serial2 = &uart2;
 	};
 
@@ -174,15 +171,59 @@
 	};
 };
 
+// In the Cluster Box, this attaches to the main PCIe switch. For some
+// reason it will not come up during U-Boot enumeration.
 &pcie3x4 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&vcc3v3_pcie30_en>;
+	pinctrl-0 = <&pcie3_reset>;
 	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
 	vpcie3v3-supply = <&vcc3v3_pcie30>;
+	num-lanes = <2>;
 	status = "okay";
 };
 
+// In the Cluster Box, this attaches to the M.2 drive. U-Boot assigns bus
+// #3 to the drive.
+&pcie3x2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie3_reset>;
+	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc1v2>;
+	status = "okay";
+};
+
+// PCIe 2.0 lane for the PCIe switch driving the 2x RT8125 ethernet
+// controllers
+&pcie2x1l0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie2_reset>;
+	reset-gpios = <&gpio1 RK_PB4 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc1v2>;
+};
+
+// MiniPCIe PCIe 2.0 lane
+&pcie2x1l1 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie2_reset>;
+	reset-gpios = <&gpio4 RK_PA2 GPIO_ACTIVE_HIGH>;
+	vpcie3v3-supply = <&vcc3v3_minipcie>;
+};
+
+// Used by both pcie3x4 and pcie3x2 PCIe 3.0 controllers. This is really two
+// separate PHYs, but the driver treats them as one.
 &pcie30phy {
+	// Important: the actual value here is completely unrelated to the desired
+	// results. There appears to be a bug with the "rockchip,rk3588-pcie3-phy"
+	// driver where it is not properly determining the link aggregation/link
+	// bifurcation value for register PCIe3PHY_GRF_CMN_CON0. The value used
+	// here is the only to trick the driver into setting the pcie30_phy_mode
+	// field (bits 2:0) to 0b000, which causes PHY0 to be attached to the
+	// pcie3x4 controller (in 2 lane mode), and PHY1 to be attached to the
+	// pcie3x2 controller (also in 2 lane mode). This needs to be fixed
+	// upstream.
+	data-lanes = <1 0 0 0>;
 	status = "okay";
 };
 
@@ -232,12 +273,24 @@
 		vcc3v3_pcie30_en: vcc3v3-pcie30-en {
 			rockchip,pins = <1 RK_PB2 RK_FUNC_GPIO &pcfg_pull_up>;
 		};
+
+		pcie3_reset: pcie3-reset {
+			rockchip,pins = <4 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		pcie2_reset: pcie2-reset {
+			rockchip,pins = <1 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
 	};
 
 	mini-pcie {
 		vcc3v3_minipcie_en: vcc3v3-minipcie-en {
 			// Pulled down by R334
 			rockchip,pins = <3 RK_PC6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		minipcie_reset: minipcie-reset {
+			rockchip,pins = <4 RK_PA2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 
