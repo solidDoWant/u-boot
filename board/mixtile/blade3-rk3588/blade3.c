@@ -7,7 +7,7 @@
 #include <fdt_support.h>
 
 #ifdef CONFIG_OF_BOARD_SETUP
-int nanopc_t6_add_reserved_memory_fdt_nodes(void *new_blob)
+int blade3_add_reserved_memory_fdt_nodes(void *new_blob)
 {
     struct fdt_memory gap1 = {
         .start = 0x3fc000000,
@@ -34,6 +34,6 @@ int nanopc_t6_add_reserved_memory_fdt_nodes(void *new_blob)
 
 int ft_board_setup(void *blob, struct bd_info *bd)
 {
-    return nanopc_t6_add_reserved_memory_fdt_nodes(blob);
+    return blade3_add_reserved_memory_fdt_nodes(blob);
 }
 #endif
