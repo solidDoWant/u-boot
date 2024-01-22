@@ -7,7 +7,6 @@
  *
  */
 
-#include <common.h>
 #include <asm/io.h>
 #include <dm/uclass.h>
 #include <k3-ddrss.h>
@@ -19,6 +18,7 @@
 #include "../common/board_detect.h"
 
 #define board_is_am64x_gpevm() (board_ti_k3_is("AM64-GPEVM") || \
+				board_ti_k3_is("AM64-EVM") || \
 				board_ti_k3_is("AM64-HSEVM"))
 
 #define board_is_am64x_skevm() (board_ti_k3_is("AM64-SKEVM") || \

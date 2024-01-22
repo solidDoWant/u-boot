@@ -118,6 +118,7 @@ List of mainline supported Rockchip boards:
      - FriendlyElec NanoPC-T6 (nanopc-t6-rk3588)
      - Mixtile Blade 3 (blade3-rk3588)
      - Pine64 QuartzPro64 (quartzpro64-rk3588)
+     - Turing Machines RK1 (turing-rk1-rk3588)
      - Radxa ROCK 5A (rock5a-rk3588s)
      - Radxa ROCK 5B (rock5b-rk3588)
      - Xunlong Orange Pi 5 (orangepi-5-rk3588s)
