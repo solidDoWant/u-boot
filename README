@@ -3,6 +3,25 @@
 # (C) Copyright 2000 - 2013
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+What is this fork?
+==================
+
+This fork adds Mixtile Blade 3 support to modern U-Boot. It supports NVMe
+and network boot via the two RT8125 controllers. This branch is intended
+to be close enough to upstream that it could be used to source a patch in
+the future (with the exception of these README changes).
+
+The config for this board can be generated with the blade3-rk3588_defconfig
+makefile target. For more details on how to build and create a disk image
+with this tree, view the Earthfile on the personal branch.
+
+The mixtile/blade-3-support-personal branch contains some extra
+configuration, and an Earthly Earthfile that can be used to efficiently
+build the project and upload new builds to the onboard eMMC flash, with
+root partition on a NVMe drive.
+
+# Original README:
+
 Summary:
 ========
 

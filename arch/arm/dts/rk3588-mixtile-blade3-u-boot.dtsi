@@ -38,3 +38,7 @@
 	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_HIGH>;
 	status = "okay";
 };
+
+&rng {
+	status = "okay";
+}
