@@ -188,7 +188,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie3_reset>;
 	reset-gpios = <&gpio4 RK_PB6 GPIO_ACTIVE_HIGH>;
-	vpcie3v3-supply = <&vcc1v2>;
+	vpcie3v3-supply = <&vcc3v3_pcie30>;
 	status = "okay";
 };
 
